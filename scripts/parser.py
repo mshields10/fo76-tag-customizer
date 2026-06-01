@@ -23,11 +23,13 @@ def parse_strings_file(filepath):
 
 
 if __name__ == '__main__':
-    import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else \
-        r'C:\Users\mshie\Documents\Mod Tools\strings\Modded\SeventySix_en.STRINGS'
+    import argparse
 
-    strings = parse_strings_file(path)
+    arg_parser = argparse.ArgumentParser(description='Parse a Bethesda .STRINGS binary file.')
+    arg_parser.add_argument('--strings', required=True, metavar='PATH', help='Path to the .STRINGS file')
+    args = arg_parser.parse_args()
+
+    strings = parse_strings_file(args.strings)
     print(f'Total entries: {len(strings)}')
 
     plans = {fid: name for fid, name in strings.items() if 'plan:' in name.lower()}

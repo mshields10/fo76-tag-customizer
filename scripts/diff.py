@@ -83,12 +83,16 @@ def build_rules(vanilla: dict, modded: dict) -> list:
 
 
 if __name__ == '__main__':
-    vanilla_path = r'C:\Users\mshie\Documents\Mod Tools\strings\Vanilla\strings\seventysix_en.strings'
-    modded_path  = r'C:\Users\mshie\Documents\Mod Tools\strings\Modded\SeventySix_en.STRINGS'
-    output_path  = r'C:\Users\mshie\Documents\Mod Tools\tidy_wasteland_analysis.json'
+    import argparse
 
-    vanilla = parse_strings_file(vanilla_path)
-    modded  = parse_strings_file(modded_path)
+    arg_parser = argparse.ArgumentParser(description='Diff vanilla vs modded .STRINGS and export rules to JSON.')
+    arg_parser.add_argument('--vanilla', required=True, metavar='PATH', help='Path to the vanilla .STRINGS file')
+    arg_parser.add_argument('--modded',  required=True, metavar='PATH', help='Path to the modded .STRINGS file')
+    arg_parser.add_argument('--output',  required=True, metavar='PATH', help='Path for the output JSON file')
+    args = arg_parser.parse_args()
+
+    vanilla = parse_strings_file(args.vanilla)
+    modded  = parse_strings_file(args.modded)
     rules   = build_rules(vanilla, modded)
 
     output = {
@@ -97,10 +101,10 @@ if __name__ == '__main__':
         'rules': rules
     }
 
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(args.output, 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
 
-    print(f'Exported {len(rules)} rules to {output_path}')
+    print(f'Exported {len(rules)} rules to {args.output}')
 
     renamed  = sum(1 for r in rules if r['display_name'])
     tagged   = sum(1 for r in rules if r['tags'])
