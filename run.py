@@ -38,10 +38,13 @@ def cmd_diff(args):
 
     print(f'Exported {len(rules)} rules to {args.output}')
 
+    plans    = sum(1 for r in rules if 'plan:' in r['vanilla_name'].lower())
     renamed  = sum(1 for r in rules if r['display_name'])
     tagged   = sum(1 for r in rules if r['tags'])
     prefixed = sum(1 for r in rules if r['sort_tier'])
     both     = sum(1 for r in rules if r['tags'] and r['sort_tier'])
+    print(f'  Plans:         {plans}')
+    print(f'  Other items:   {len(rules) - plans}')
     print(f'  Renames:       {renamed}')
     print(f'  Tagged:        {tagged}')
     print(f'  Sort prefixed: {prefixed}')
