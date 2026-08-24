@@ -43,6 +43,30 @@ def apply_rule(vanilla_name, rule, sort_tiers):
     return result
 
 
+def merge_rules(base_rules, custom_rules):
+    """Merge custom rules into base rules with field-level overrides.
+
+    For each custom entry:
+      - If its form_id already exists in base_rules: overwrite only the fields
+        present in the custom entry (lets you change just sort_tier or just tags
+        without touching the rest of the rule).
+      - If its form_id is new: insert the entry wholesale (covers items the mod
+        doesn't handle at all).
+
+    Custom rules always win on any field they specify.
+    """
+    merged = {r['form_id']: dict(r) for r in base_rules}
+
+    for custom in custom_rules:
+        fid = custom['form_id']
+        if fid in merged:
+            merged[fid].update({k: v for k, v in custom.items()})
+        else:
+            merged[fid] = dict(custom)
+
+    return list(merged.values())
+
+
 def build_modified_strings(vanilla, rules, sort_tiers):
     """Apply rules to a vanilla strings dict.
 

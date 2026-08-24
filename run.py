@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scripts'))
 from parser import parse_strings_file
 from diff import build_rules, SORT_TIERS
 from extract_ba2 import extract_from_ba2
-from compiler import build_modified_strings, write_strings_file, verify_output
+from compiler import merge_rules, build_modified_strings, write_strings_file, verify_output
 
 
 def cmd_parser(args):
@@ -48,6 +48,21 @@ def cmd_diff(args):
     print(f'  Both:          {both}')
 
 
+def cmd_find(args):
+    strings = parse_strings_file(args.strings)
+    query   = args.query.lower()
+    hits    = sorted(
+        [(fid, name) for fid, name in strings.items() if query in name.lower()],
+        key=lambda x: x[1]
+    )
+    if not hits:
+        print(f'No entries found matching "{args.query}"')
+        return
+    print(f'{len(hits)} match(es) for "{args.query}":')
+    for fid, name in hits:
+        print(f'  {fid:#010x}  {name}')
+
+
 def cmd_compile(args):
     import json
 
@@ -61,6 +76,13 @@ def cmd_compile(args):
     sort_tiers = data['sort_tiers']
     rules      = data['rules']
     print(f'  {len(rules):,} rules loaded')
+
+    if args.custom_rules:
+        with open(args.custom_rules, encoding='utf-8') as f:
+            custom = json.load(f)
+        custom_list = custom.get('rules', [])
+        rules = merge_rules(rules, custom_list)
+        print(f'  {len(custom_list):,} custom rule(s) merged ({len(rules):,} total)')
 
     print('Applying rules...')
     modified, stats = build_modified_strings(vanilla, rules, sort_tiers)
@@ -124,6 +146,20 @@ def main():
         help='Path for the output JSON file (default: $FO76_OUTPUT_JSON)'
     )
 
+    # find subcommand
+    p_find = subparsers.add_parser('find', help='Search vanilla strings by name to look up form IDs')
+    p_find.add_argument(
+        'query',
+        metavar='TEXT',
+        help='Case-insensitive substring to search for'
+    )
+    p_find.add_argument(
+        '--strings',
+        default=os.environ.get('FO76_VANILLA_STRINGS'),
+        metavar='PATH',
+        help='Path to the .STRINGS file to search (default: $FO76_VANILLA_STRINGS)'
+    )
+
     # compile subcommand
     p_compile = subparsers.add_parser('compile', help='Apply rules JSON to vanilla .STRINGS and write a modded binary')
     p_compile.add_argument(
@@ -143,6 +179,12 @@ def main():
         default=os.environ.get('FO76_COMPILED_STRINGS'),
         metavar='PATH',
         help='Destination for the compiled .STRINGS file (default: $FO76_COMPILED_STRINGS)'
+    )
+    p_compile.add_argument(
+        '--custom-rules',
+        default=os.environ.get('FO76_CUSTOM_RULES'),
+        metavar='PATH',
+        help='Path to custom rules JSON for field-level overrides (default: $FO76_CUSTOM_RULES)'
     )
     p_compile.add_argument(
         '--verify',
@@ -184,6 +226,8 @@ def main():
             missing.append('--modded (or set $FO76_MODDED_STRINGS)')
         if not args.output:
             missing.append('--output (or set $FO76_OUTPUT_JSON)')
+    if args.command == 'find' and not args.strings:
+        missing.append('--strings (or set $FO76_VANILLA_STRINGS)')
     if args.command == 'compile':
         if not args.vanilla:
             missing.append('--vanilla (or set $FO76_VANILLA_STRINGS)')
@@ -202,6 +246,7 @@ def main():
     dispatch = {
         'parser':  cmd_parser,
         'diff':    cmd_diff,
+        'find':    cmd_find,
         'compile': cmd_compile,
         'extract': cmd_extract,
     }
