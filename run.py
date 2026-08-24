@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scripts'))
 
 from parser import parse_strings_file
 from diff import build_rules, SORT_TIERS
+from extract_ba2 import extract_from_ba2
 
 
 def cmd_parser(args):
@@ -46,6 +47,10 @@ def cmd_diff(args):
     print(f'  Both:          {both}')
 
 
+def cmd_extract(args):
+    extract_from_ba2(args.ba2, args.file, args.output)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='run.py',
@@ -83,6 +88,27 @@ def main():
         help='Path for the output JSON file (default: $FO76_OUTPUT_JSON)'
     )
 
+    # extract subcommand
+    p_extract = subparsers.add_parser('extract', help='Extract vanilla strings from a BA2 archive')
+    p_extract.add_argument(
+        '--ba2',
+        default=os.environ.get('FO76_BA2_LOCALIZATION'),
+        metavar='PATH',
+        help='Path to the .ba2 archive (default: $FO76_BA2_LOCALIZATION)'
+    )
+    p_extract.add_argument(
+        '--file',
+        default='strings/seventysix_en.strings',
+        metavar='NAME',
+        help='Internal path to extract (default: strings/seventysix_en.strings)'
+    )
+    p_extract.add_argument(
+        '--output',
+        default=os.environ.get('FO76_VANILLA_STRINGS'),
+        metavar='PATH',
+        help='Destination path for extracted file (default: $FO76_VANILLA_STRINGS)'
+    )
+
     args = parser.parse_args()
 
     # Validate that required paths were resolved (via flag or env var)
@@ -96,12 +122,18 @@ def main():
             missing.append('--modded (or set $FO76_MODDED_STRINGS)')
         if not args.output:
             missing.append('--output (or set $FO76_OUTPUT_JSON)')
+    if args.command == 'extract':
+        if not args.ba2:
+            missing.append('--ba2 (or set $FO76_BA2_LOCALIZATION)')
+        if not args.output:
+            missing.append('--output (or set $FO76_VANILLA_STRINGS)')
     if missing:
         parser.error('Missing required arguments:\n  ' + '\n  '.join(missing))
 
     dispatch = {
-        'parser': cmd_parser,
-        'diff':   cmd_diff,
+        'parser':  cmd_parser,
+        'diff':    cmd_diff,
+        'extract': cmd_extract,
     }
     dispatch[args.command](args)
 
