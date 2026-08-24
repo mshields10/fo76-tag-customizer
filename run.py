@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scripts'))
 from parser import parse_strings_file
 from diff import build_rules, SORT_TIERS
 from extract_ba2 import extract_from_ba2
+from compiler import build_modified_strings, write_strings_file, verify_output
 
 
 def cmd_parser(args):
@@ -45,6 +46,41 @@ def cmd_diff(args):
     print(f'  Tagged:        {tagged}')
     print(f'  Sort prefixed: {prefixed}')
     print(f'  Both:          {both}')
+
+
+def cmd_compile(args):
+    import json
+
+    print('Reading vanilla strings...')
+    vanilla = parse_strings_file(args.vanilla)
+    print(f'  {len(vanilla):,} entries loaded')
+
+    print('Reading rules...')
+    with open(args.rules, encoding='utf-8') as f:
+        data = json.load(f)
+    sort_tiers = data['sort_tiers']
+    rules      = data['rules']
+    print(f'  {len(rules):,} rules loaded')
+
+    print('Applying rules...')
+    modified, stats = build_modified_strings(vanilla, rules, sort_tiers)
+    print(f'  {stats["applied"]:,} rules applied')
+    if stats['skipped_missing']:
+        print(f'  {stats["skipped_missing"]:,} rules skipped (form_id not in vanilla file)')
+
+    print('Writing output...')
+    num_entries, data_size = write_strings_file(modified, args.output)
+    print(f'  {num_entries:,} entries, {data_size:,} bytes data block -> {args.output}')
+
+    if args.verify:
+        print('Verifying...')
+        mismatches = verify_output(args.output, modified)
+        if mismatches:
+            print(f'  FAILED: {len(mismatches)} mismatches found!')
+            for fid, expected, actual in mismatches[:10]:
+                print(f'    {fid:#010x}: expected {expected!r}, got {actual!r}')
+        else:
+            print(f'  OK: all {num_entries:,} entries verified')
 
 
 def cmd_extract(args):
@@ -88,6 +124,32 @@ def main():
         help='Path for the output JSON file (default: $FO76_OUTPUT_JSON)'
     )
 
+    # compile subcommand
+    p_compile = subparsers.add_parser('compile', help='Apply rules JSON to vanilla .STRINGS and write a modded binary')
+    p_compile.add_argument(
+        '--vanilla',
+        default=os.environ.get('FO76_VANILLA_STRINGS'),
+        metavar='PATH',
+        help='Path to the vanilla .STRINGS file (default: $FO76_VANILLA_STRINGS)'
+    )
+    p_compile.add_argument(
+        '--rules',
+        default=os.environ.get('FO76_OUTPUT_JSON'),
+        metavar='PATH',
+        help='Path to the rules JSON file (default: $FO76_OUTPUT_JSON)'
+    )
+    p_compile.add_argument(
+        '--output',
+        default=os.environ.get('FO76_COMPILED_STRINGS'),
+        metavar='PATH',
+        help='Destination for the compiled .STRINGS file (default: $FO76_COMPILED_STRINGS)'
+    )
+    p_compile.add_argument(
+        '--verify',
+        action='store_true',
+        help='Re-parse output after writing to confirm all entries are correct'
+    )
+
     # extract subcommand
     p_extract = subparsers.add_parser('extract', help='Extract vanilla strings from a BA2 archive')
     p_extract.add_argument(
@@ -122,6 +184,13 @@ def main():
             missing.append('--modded (or set $FO76_MODDED_STRINGS)')
         if not args.output:
             missing.append('--output (or set $FO76_OUTPUT_JSON)')
+    if args.command == 'compile':
+        if not args.vanilla:
+            missing.append('--vanilla (or set $FO76_VANILLA_STRINGS)')
+        if not args.rules:
+            missing.append('--rules (or set $FO76_OUTPUT_JSON)')
+        if not args.output:
+            missing.append('--output (or set $FO76_COMPILED_STRINGS)')
     if args.command == 'extract':
         if not args.ba2:
             missing.append('--ba2 (or set $FO76_BA2_LOCALIZATION)')
@@ -133,6 +202,7 @@ def main():
     dispatch = {
         'parser':  cmd_parser,
         'diff':    cmd_diff,
+        'compile': cmd_compile,
         'extract': cmd_extract,
     }
     dispatch[args.command](args)
