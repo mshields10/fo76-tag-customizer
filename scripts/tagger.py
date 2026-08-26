@@ -51,6 +51,25 @@ def resolve_item(vanilla, query, chooser=input):
         print(f'  Enter a number from 1-{len(matches)}, or leave blank to cancel.')
 
 
+def build_freeform_rule(form_id, vanilla_name, prefix, suffix):
+    """Build a custom_rules.json entry with free-form prefix/suffix text.
+
+    Uses display_name to set the exact final string — the right choice here
+    because there is no sort-tier spacing logic to apply; the user is
+    specifying the literal output they want.
+    """
+    display = f'{prefix}{vanilla_name}{suffix}'
+    return {
+        'form_id':      f'{form_id:#010x}',
+        'vanilla_name': vanilla_name,
+        'base_name':    vanilla_name,
+        'sort_tier':    None,
+        'tags':         [],
+        'tag_position': None,
+        'display_name': display,
+    }
+
+
 def build_rule(form_id, vanilla_name, symbol_key, sort_tiers):
     """Build a custom_rules.json entry that applies the given sort tier to vanilla_name.
 

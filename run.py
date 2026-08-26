@@ -8,7 +8,7 @@ from parser import parse_strings_file
 from diff import build_rules, SORT_TIERS
 from extract_ba2 import extract_from_ba2
 from compiler import merge_rules, build_modified_strings, write_strings_file, verify_output
-from tagger import resolve_item, build_rule, upsert_custom_rule
+from tagger import resolve_item, build_rule, build_freeform_rule, upsert_custom_rule
 
 
 def cmd_parser(args):
@@ -118,14 +118,21 @@ def cmd_tag(args):
         print(str(e))
         return
 
-    try:
-        rule = build_rule(form_id, vanilla_name, args.symbol, SORT_TIERS)
-    except KeyError as e:
-        print(str(e))
-        return
+    if args.symbol:
+        try:
+            rule = build_rule(form_id, vanilla_name, args.symbol, SORT_TIERS)
+        except KeyError as e:
+            print(str(e))
+            return
+        preview = f'sort_tier={args.symbol!r}'
+    else:
+        prefix = args.prefix or ''
+        suffix = args.suffix or ''
+        rule    = build_freeform_rule(form_id, vanilla_name, prefix, suffix)
+        preview = repr(rule['display_name'])
 
     action = upsert_custom_rule(args.custom_rules, rule)
-    print(f'{action.capitalize()} rule: {rule["form_id"]} -> {rule["display_name"]!r}')
+    print(f'{action.capitalize()} rule: {rule["form_id"]} -> {preview}')
     print(f'  ({args.custom_rules})')
     print("Run 'compile --custom-rules ...' to apply it to a .STRINGS file.")
 
@@ -220,19 +227,30 @@ def main():
     # tag subcommand
     p_tag = subparsers.add_parser(
         'tag',
-        help='Search vanilla strings by name and add/update a custom symbol rule'
+        help='Search vanilla strings by name and add/update a custom rule'
     )
     p_tag.add_argument(
         'query',
         metavar='NAME',
         help='Item name (or substring) to search for'
     )
-    p_tag.add_argument(
+    tag_mode = p_tag.add_mutually_exclusive_group(required=True)
+    tag_mode.add_argument(
         '--symbol',
-        required=True,
         choices=list(SORT_TIERS),
         metavar='TIER',
-        help='Symbol tier to apply: ' + ', '.join(SORT_TIERS)
+        help='Sort-tier symbol to apply (handles lead_spaces automatically): '
+             + ', '.join(SORT_TIERS)
+    )
+    tag_mode.add_argument(
+        '--prefix',
+        metavar='TEXT',
+        help='Free-form text to prepend to the item name (use with optional --suffix)'
+    )
+    p_tag.add_argument(
+        '--suffix',
+        metavar='TEXT',
+        help='Free-form text to append to the item name (requires --prefix)'
     )
     p_tag.add_argument(
         '--vanilla',
@@ -295,6 +313,8 @@ def main():
             missing.append('--vanilla (or set $FO76_VANILLA_STRINGS)')
         if not args.custom_rules:
             missing.append('--custom-rules (or set $FO76_CUSTOM_RULES)')
+        if getattr(args, 'suffix', None) and not getattr(args, 'prefix', None):
+            missing.append('--prefix is required when --suffix is used')
     if args.command == 'extract':
         if not args.ba2:
             missing.append('--ba2 (or set $FO76_BA2_LOCALIZATION)')
