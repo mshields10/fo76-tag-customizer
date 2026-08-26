@@ -52,16 +52,24 @@ def resolve_item(vanilla, query, chooser=input):
 
 
 def build_rule(form_id, vanilla_name, symbol_key, sort_tiers):
-    """Build a custom_rules.json entry that prepends the given symbol to vanilla_name."""
+    """Build a custom_rules.json entry that applies the given sort tier to vanilla_name.
+
+    Sets sort_tier (not display_name) so that apply_rule() handles all spacing
+    and symbol logic consistently — the same path used for every mod-covered item.
+    display_name is explicitly null so it doesn't short-circuit apply_rule().
+    """
     if symbol_key not in sort_tiers:
         valid = ', '.join(sort_tiers)
         raise KeyError(f'Unknown symbol tier "{symbol_key}". Valid tiers: {valid}')
 
-    symbol = sort_tiers[symbol_key]['symbol']
     return {
         'form_id':      f'{form_id:#010x}',
         'vanilla_name': vanilla_name,
-        'display_name': f'{symbol} {vanilla_name}',
+        'base_name':    vanilla_name,
+        'sort_tier':    symbol_key,
+        'tags':         [],
+        'tag_position': None,
+        'display_name': None,
     }
 
 
