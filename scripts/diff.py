@@ -5,20 +5,40 @@ from parser import parse_strings_file
 
 
 SORT_SYMBOLS = {
-    '¤':   'rare',
-    '¬':   'mid',
-    '¬¬':  'common',
-    '¬¬¬': 'basic',
-    '±':   'lowest',
+    '¬':   'rare',
+    '¬¬':  'very_rare',
+    '¬¬¬': 'ultra_rare',
+    '±':   'valuable',
+    '·':   'important',
+    '¢':   'atom_shop',
+    '¤':   'cut_content',
+    '¶':   'magazine',
 }
 
 SORT_TIERS = {
-    'rare':   {'symbol': '¤',   'description': 'Rare/valuable plans'},
-    'mid':    {'symbol': '¬',   'description': 'Mid tier plans'},
-    'common': {'symbol': '¬¬',  'description': 'Common craftable mods'},
-    'basic':  {'symbol': '¬¬¬', 'description': 'Basic/low value plans'},
-    'lowest': {'symbol': '±',   'description': 'Lowest priority'}
+    'rare':        {'symbol': '¬',   'lead_spaces': 1, 'description': 'Rare (renders as ★)'},
+    'very_rare':   {'symbol': '¬¬',  'lead_spaces': 3, 'description': 'Very Rare (renders as ★★)'},
+    'ultra_rare':  {'symbol': '¬¬¬', 'lead_spaces': 4, 'description': 'Ultra Rare (renders as ★★★)'},
+    'valuable':    {'symbol': '±',   'lead_spaces': 1, 'description': 'Valuable (renders as Ⓒ)'},
+    'important':   {'symbol': '·',   'lead_spaces': 1, 'description': 'Important (renders as ⊕)'},
+    'atom_shop':   {'symbol': '¢',   'lead_spaces': 1, 'description': 'Atom Shop exclusive (renders as ⚛)'},
+    'cut_content': {'symbol': '¤',   'lead_spaces': 1, 'description': 'Cut/Illegal/Dev — not legitimately obtainable (renders as ☢)'},
+    'magazine':    {'symbol': '¶',   'lead_spaces': 1, 'description': "Worth-reading magazine (renders as a stacked-papers icon; paired with a 'Mag: ' name prefix)"},
 }
+
+# lead_spaces above is what the mod uses in the common case. Leading whitespace is not
+# cosmetic — the game's inventory sort is a plain ASCII/codepoint comparison, and a space
+# (0x20) sorts before every symbol/letter/digit used here, so more leading spaces pushes
+# an item further toward the top. Verified against the actual modded .STRINGS output:
+# every symbol is 100% consistent at the count above EXCEPT 'rare' (¬), which the mod
+# bumps to 2 leading spaces specifically when the item is a "Plan: ..." — see
+# RARE_PLAN_LEAD_SPACES in compiler.py's apply_rule(). All other tiers ignore Plan-ness.
+
+# NOTE: a small number of items (~0.5% of rules, all "Legendary Mod"/"Legendary Core"
+# variants) carry a repeated '¬' sequence that vanilla FO76 itself already used for an
+# unrelated purpose (not added by this mod), immediately followed by a mod-added symbol
+# (e.g. '¤ ¬¬¬¬ Legendary Mod'). SORT_SYMBOLS only recognizes single, standalone symbol
+# groups, so these combo cases fall through with sort_tier: None, same as before this fix.
 
 
 def extract_components(vanilla, modded):
@@ -27,7 +47,7 @@ def extract_components(vanilla, modded):
     remainder = modded
 
     # Extract sort prefix (special unicode chars before item name)
-    prefix_match = re.match(r'^([¢¤¬±\s]+)(.+)$', modded)
+    prefix_match = re.match(r'^([¬±¢¤·¶\s]+)(.+)$', modded)
     if prefix_match:
         sort_prefix = prefix_match.group(1).strip()
         remainder = prefix_match.group(2).strip()
@@ -42,7 +62,7 @@ def extract_components(vanilla, modded):
     # Detect tag position
     tag_position = None
     if tags:
-        if re.search(r'^Plan:\s*\[', remainder):
+        if re.search(r'^(Plan|Recipe):\s*\[', remainder):
             tag_position = 'after_prefix'
         else:
             tag_position = 'before_plan'

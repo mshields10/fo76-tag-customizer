@@ -8,6 +8,7 @@ from parser import parse_strings_file
 from diff import build_rules, SORT_TIERS
 from extract_ba2 import extract_from_ba2
 from compiler import merge_rules, build_modified_strings, write_strings_file, verify_output
+from tagger import resolve_item, build_rule, upsert_custom_rule
 
 
 def cmd_parser(args):
@@ -108,6 +109,27 @@ def cmd_compile(args):
             print(f'  OK: all {num_entries:,} entries verified')
 
 
+def cmd_tag(args):
+    vanilla = parse_strings_file(args.vanilla)
+
+    try:
+        form_id, vanilla_name = resolve_item(vanilla, args.query)
+    except LookupError as e:
+        print(str(e))
+        return
+
+    try:
+        rule = build_rule(form_id, vanilla_name, args.symbol, SORT_TIERS)
+    except KeyError as e:
+        print(str(e))
+        return
+
+    action = upsert_custom_rule(args.custom_rules, rule)
+    print(f'{action.capitalize()} rule: {rule["form_id"]} -> {rule["display_name"]!r}')
+    print(f'  ({args.custom_rules})')
+    print("Run 'compile --custom-rules ...' to apply it to a .STRINGS file.")
+
+
 def cmd_extract(args):
     extract_from_ba2(args.ba2, args.file, args.output)
 
@@ -195,6 +217,36 @@ def main():
         help='Re-parse output after writing to confirm all entries are correct'
     )
 
+    # tag subcommand
+    p_tag = subparsers.add_parser(
+        'tag',
+        help='Search vanilla strings by name and add/update a custom symbol rule'
+    )
+    p_tag.add_argument(
+        'query',
+        metavar='NAME',
+        help='Item name (or substring) to search for'
+    )
+    p_tag.add_argument(
+        '--symbol',
+        required=True,
+        choices=list(SORT_TIERS),
+        metavar='TIER',
+        help='Symbol tier to apply: ' + ', '.join(SORT_TIERS)
+    )
+    p_tag.add_argument(
+        '--vanilla',
+        default=os.environ.get('FO76_VANILLA_STRINGS'),
+        metavar='PATH',
+        help='Path to the vanilla .STRINGS file to search (default: $FO76_VANILLA_STRINGS)'
+    )
+    p_tag.add_argument(
+        '--custom-rules',
+        default=os.environ.get('FO76_CUSTOM_RULES'),
+        metavar='PATH',
+        help='Path to custom rules JSON to update (default: $FO76_CUSTOM_RULES)'
+    )
+
     # extract subcommand
     p_extract = subparsers.add_parser('extract', help='Extract vanilla strings from a BA2 archive')
     p_extract.add_argument(
@@ -238,6 +290,11 @@ def main():
             missing.append('--rules (or set $FO76_OUTPUT_JSON)')
         if not args.output:
             missing.append('--output (or set $FO76_COMPILED_STRINGS)')
+    if args.command == 'tag':
+        if not args.vanilla:
+            missing.append('--vanilla (or set $FO76_VANILLA_STRINGS)')
+        if not args.custom_rules:
+            missing.append('--custom-rules (or set $FO76_CUSTOM_RULES)')
     if args.command == 'extract':
         if not args.ba2:
             missing.append('--ba2 (or set $FO76_BA2_LOCALIZATION)')
@@ -251,6 +308,7 @@ def main():
         'diff':    cmd_diff,
         'find':    cmd_find,
         'compile': cmd_compile,
+        'tag':     cmd_tag,
         'extract': cmd_extract,
     }
     dispatch[args.command](args)

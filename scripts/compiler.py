@@ -3,13 +3,27 @@ import json
 from parser import parse_strings_file
 
 
+# The mod bumps 'rare' (single-★) items from its usual 1 leading space to 2 when the
+# item is a "Plan: ...". Every other tier (including very_rare/ultra_rare) ignores
+# Plan-ness entirely. See the NOTE above SORT_TIERS in diff.py for how this was derived.
+RARE_TIER_PLAN_BONUS_SPACES = 1
+
+# Tags that DON'T get the extra after-colon space (see below). 'Serum' (mutation serum
+# recipes) is the one confirmed exception: 19/19 real "Recipe: [Serum] ..." entries use
+# a single space, while every other Plan:/Recipe: + tag combination (40+ other tags,
+# hundreds of entries) uses two. No other exception found.
+NO_TAG_SPACE_BONUS = {'Serum'}
+
+
 def apply_rule(vanilla_name, rule, sort_tiers):
     """Reconstruct the modded string from a rule's components.
 
     Handles three cases:
       - Pure rename:   display_name is set, use it directly
       - Tags only:     insert [Tag1][Tag2] at the correct position
-      - Sort only:     prepend the sort symbol
+      - Sort only:     prepend the sort symbol (padded with leading spaces so the
+                       in-game inventory sort — a plain codepoint comparison — still
+                       floats these items to the top the way the mod intends)
       - Tags + sort:   both of the above
     """
     # Pure rename — display_name is the complete corrected name
@@ -20,25 +34,36 @@ def apply_rule(vanilla_name, rule, sort_tiers):
     tags     = rule.get('tags') or []
     tag_pos  = rule.get('tag_position')
     tier     = rule.get('sort_tier')
-    symbol   = sort_tiers.get(tier, {}).get('symbol', '') if tier else ''
+    tier_info = sort_tiers.get(tier, {}) if tier else {}
+    symbol   = tier_info.get('symbol', '')
 
     # Insert tags
     if tags:
         tag_str = ''.join(f'[{t}]' for t in tags)
         if tag_pos == 'after_prefix':
-            # Insert right after the first ": "  (e.g. "Plan: [Tag] Item Name")
+            # Insert right after the first ": " (e.g. "Plan:  [Tag] Item Name").
+            # The mod puts one extra space before the bracket here for every tag
+            # except NO_TAG_SPACE_BONUS (confirmed against the real modded strings:
+            # 1303/1308 tag-bearing Plan:/Recipe: entries use two spaces after the
+            # colon, 0/1417 tag-free ones do — and Serum recipes are the sole 19/19
+            # exception, always single-space).
             idx = result.find(': ')
+            bonus = '' if tags[0] in NO_TAG_SPACE_BONUS else ' '
             if idx != -1:
-                result = result[:idx + 2] + tag_str + ' ' + result[idx + 2:]
+                result = result[:idx + 2] + bonus + tag_str + ' ' + result[idx + 2:]
             else:
                 result = tag_str + ' ' + result
         else:
             # before_plan: tags precede the whole string
             result = tag_str + ' ' + result
 
-    # Prepend sort symbol
+    # Prepend sort symbol, padded with leading spaces so it still sorts to the top of
+    # the in-game inventory list (see RARE_TIER_PLAN_BONUS_SPACES above).
     if symbol:
-        result = symbol + ' ' + result
+        lead_spaces = tier_info.get('lead_spaces', 0)
+        if tier == 'rare' and result.startswith('Plan:'):
+            lead_spaces += RARE_TIER_PLAN_BONUS_SPACES
+        result = (' ' * lead_spaces) + symbol + ' ' + result
 
     return result
 
