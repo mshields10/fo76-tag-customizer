@@ -339,10 +339,17 @@ class MainWindow(QMainWindow):
             self._open_settings(first_run=True)
             return
 
-        for path in (vanilla_path, rules_path):
-            if not os.path.exists(path):
-                self.statusBar().showMessage(f"File not found: {path}")
-                return
+        if not os.path.exists(rules_path):
+            self.statusBar().showMessage(f"Rules database not found: {rules_path}")
+            return
+
+        if not os.path.exists(vanilla_path):
+            # Normal first-run state: BA2 hasn't been synced yet.
+            # Guide the user rather than showing a bare "file not found".
+            self.statusBar().showMessage(
+                "Almost ready  ·  File → Sync with Game Update… to extract vanilla strings"
+            )
+            return
 
         self.statusBar().showMessage("Loading item data…")
         self._compile_btn.setEnabled(False)

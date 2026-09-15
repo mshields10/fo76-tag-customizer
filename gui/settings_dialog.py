@@ -55,16 +55,18 @@ class PathField(QWidget):
 
 class SettingsDialog(QDialog):
     """
-    Five-path configuration dialog, organised into two groups.
+    Path configuration dialog, organised into two groups.
 
     Runtime paths (QSettings keys):
       paths/vanilla_strings   — extracted vanilla SeventySix_en.strings
-      paths/rules_json        — tidy_wasteland_analysis.json  (our maintained baseline)
       paths/custom_rules      — custom_rules.json  (may not exist yet)
       paths/compiled_output   — destination .STRINGS written to the game folder
 
     Game Update Sync:
       paths/ba2               — SeventySix - Localization.ba2
+
+    Note: paths/rules_json is managed automatically by populate_default_settings()
+    and is intentionally hidden from the user — it always points to the bundled asset.
     """
 
     def __init__(self, parent=None, first_run: bool = False):
@@ -101,21 +103,18 @@ class SettingsDialog(QDialog):
         runtime_form.setVerticalSpacing(8)
 
         self._vanilla_field = PathField("STRINGS files (*.strings *.STRINGS);;All Files (*)")
-        self._rules_field   = PathField("JSON files (*.json);;All Files (*)")
         self._custom_field  = PathField("JSON files (*.json);;All Files (*)")
         self._output_field  = PathField("STRINGS files (*.strings *.STRINGS);;All Files (*)")
 
         runtime_form.addRow("Vanilla strings:", self._vanilla_field)
-        runtime_form.addRow("Rules JSON:", self._rules_field)
         runtime_form.addRow("Custom rules JSON:", self._custom_field)
         runtime_form.addRow("Game strings (output):", self._output_field)
 
         runtime_note = QLabel(
             "<small>"
-            "Vanilla strings — extracted from the BA2 (see Update Baseline below)<br>"
-            "Rules JSON — rebuilt by Update Baseline; lives in the data/ folder<br>"
-            "Custom rules — your personal overrides (created automatically if missing)<br>"
-            "Game strings — .STRINGS file in FO76 Data\\strings\\ (overwritten on Compile)"
+            "Vanilla strings — extracted from the BA2 via <i>File → Sync with Game Update…</i><br>"
+            "Custom rules — your personal tag overrides (created automatically if missing)<br>"
+            "Game strings — .STRINGS file in FO76 Data\\strings\\ (overwritten on Compile &amp; Deploy)"
             "</small>"
         )
         runtime_note.setWordWrap(True)
@@ -158,14 +157,12 @@ class SettingsDialog(QDialog):
 
     def _load_saved_values(self):
         self._vanilla_field.setText(self._settings.value("paths/vanilla_strings", ""))
-        self._rules_field.setText(self._settings.value("paths/rules_json", ""))
         self._custom_field.setText(self._settings.value("paths/custom_rules", ""))
         self._output_field.setText(self._settings.value("paths/compiled_output", ""))
         self._ba2_field.setText(self._settings.value("paths/ba2", ""))
 
     def _save_and_accept(self):
         self._settings.setValue("paths/vanilla_strings", self._vanilla_field.text())
-        self._settings.setValue("paths/rules_json",      self._rules_field.text())
         self._settings.setValue("paths/custom_rules",    self._custom_field.text())
         self._settings.setValue("paths/compiled_output", self._output_field.text())
         self._settings.setValue("paths/ba2",             self._ba2_field.text())

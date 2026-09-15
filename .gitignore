@@ -3,6 +3,10 @@
 __pycache__/
 *.pyc
 
+# PyInstaller build artifacts
+build/
+dist/
+
 # Game files - do not commit copyrighted content
 *.STRINGS
 *.DLSTRINGS
