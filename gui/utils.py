@@ -1,8 +1,9 @@
 """Utility helpers shared across the GUI.
 
-  get_resource_path  — resolves bundled asset paths in both dev and PyInstaller
-  get_appdata_path   — writable user-data directory under %APPDATA%
-  detect_fo76_data_dir — finds the FO76 Data folder at common Steam locations
+  get_resource_path       — resolves bundled asset paths in both dev and PyInstaller
+  get_appdata_path        — writable user-data directory under %APPDATA%
+  companion_strings_path  — swap extension on a .STRINGS path (→ .DLSTRINGS / .ILSTRINGS)
+  detect_fo76_data_dir    — finds the FO76 Data folder at common Steam locations
   populate_default_settings — fills QSettings with smart defaults on first run
 """
 import os
@@ -41,6 +42,23 @@ def get_appdata_path(filename: str = "") -> str:
     )
     os.makedirs(base, exist_ok=True)
     return os.path.join(base, filename) if filename else base
+
+
+# ---------------------------------------------------------------------------
+# Companion string-file path helper
+# ---------------------------------------------------------------------------
+
+def companion_strings_path(strings_path: str, new_ext: str) -> str:
+    """Return a sibling path with a different extension.
+
+    companion_strings_path("Data/strings/SeventySix_en.STRINGS", ".DLSTRINGS")
+    → "Data/strings/SeventySix_en.DLSTRINGS"
+
+    Used to derive .DLSTRINGS / .ILSTRINGS output paths from the configured
+    .STRINGS output path without requiring separate user-facing settings fields.
+    """
+    base = os.path.splitext(strings_path)[0]
+    return base + new_ext
 
 
 # ---------------------------------------------------------------------------
@@ -98,8 +116,10 @@ def populate_default_settings():
 
     # User-writable files default to a dedicated AppData folder so nothing
     # ends up in Program Files or the game's Data directory by accident.
-    _default("paths/vanilla_strings", get_appdata_path("seventysix_en.strings"))
-    _default("paths/custom_rules",    get_appdata_path("custom_rules.json"))
+    _default("paths/vanilla_strings",   get_appdata_path("seventysix_en.strings"))
+    _default("paths/vanilla_dlstrings", get_appdata_path("seventysix_en.dlstrings"))
+    _default("paths/vanilla_ilstrings", get_appdata_path("seventysix_en.ilstrings"))
+    _default("paths/custom_rules",      get_appdata_path("custom_rules.json"))
 
     # Try to auto-detect FO76 for the BA2 and compiled-output paths.
     fo76_data = detect_fo76_data_dir()

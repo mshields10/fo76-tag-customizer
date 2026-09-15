@@ -70,32 +70,41 @@ class _BaselineUpdater(QObject):
     """
     Re-extracts vanilla strings from the updated BA2 after a game patch.
 
+    Extracts all three string file types (.strings, .dlstrings, .ilstrings)
+    so that the game can find dialogue subtitles and item descriptions even
+    when our compiled .STRINGS override is deployed.
+
     The rules JSON (data/tidy_wasteland_analysis.json) is our maintained
     baseline — we do NOT overwrite it here.  Existing items keep their tags.
-    New items added by the patch will appear in the Plan:/Recipe: search
-    tier so users can tag them manually via the GUI.
+    New items added by the patch appear in the Plan:/Recipe: search tier.
     """
     progress = Signal(str)
     finished = Signal(int)   # vanilla_count
     error    = Signal(str)
 
-    _INTERNAL_PATH = "strings/seventysix_en.strings"
-
-    def __init__(self, ba2_path: str, vanilla_out: str):
+    def __init__(self, ba2_path: str,
+                 vanilla_out: str, vanilla_dl_out: str, vanilla_il_out: str):
         super().__init__()
-        self._ba2_path    = ba2_path
-        self._vanilla_out = vanilla_out
+        self._ba2_path       = ba2_path
+        self._vanilla_out    = vanilla_out
+        self._vanilla_dl_out = vanilla_dl_out
+        self._vanilla_il_out = vanilla_il_out
 
     def run(self):
         try:
-            from extract_ba2 import extract_from_ba2
+            from extract_ba2 import extract_multiple_from_ba2
             from parser import parse_strings_file
 
             self.progress.emit("Extracting vanilla strings from BA2…")
-            extract_from_ba2(self._ba2_path, self._INTERNAL_PATH, self._vanilla_out)
+            file_map = {
+                "strings/seventysix_en.strings":   self._vanilla_out,
+                "strings/seventysix_en.dlstrings": self._vanilla_dl_out,
+                "strings/seventysix_en.ilstrings": self._vanilla_il_out,
+            }
+            extract_multiple_from_ba2(self._ba2_path, file_map)
 
             vanilla = parse_strings_file(self._vanilla_out)
-            self.progress.emit(f"Extracted {len(vanilla):,} vanilla strings")
+            self.progress.emit(f"Extracted {len(vanilla):,} vanilla strings + DL + IL")
 
             self.finished.emit(len(vanilla))
 
@@ -120,18 +129,23 @@ class _CompileWorker(QObject):
     error    = Signal(str)
 
     def __init__(self, vanilla: dict, rules: list, sort_tiers: dict,
-                 custom_rules_path: str, output_path: str, verify: bool):
+                 custom_rules_path: str, output_path: str, verify: bool,
+                 vanilla_dl_path: str, vanilla_il_path: str):
         super().__init__()
-        self._vanilla          = vanilla
-        self._rules            = rules
-        self._sort_tiers       = sort_tiers
+        self._vanilla           = vanilla
+        self._rules             = rules
+        self._sort_tiers        = sort_tiers
         self._custom_rules_path = custom_rules_path
-        self._output_path      = output_path
-        self._verify           = verify
+        self._output_path       = output_path
+        self._verify            = verify
+        self._vanilla_dl_path   = vanilla_dl_path
+        self._vanilla_il_path   = vanilla_il_path
 
     def run(self):
         try:
+            import shutil
             from compiler import merge_rules, build_modified_strings, write_strings_file, verify_output
+            from gui.utils import companion_strings_path
 
             rules = self._rules
 
@@ -149,8 +163,7 @@ class _CompileWorker(QObject):
             self.progress.emit(f"Applying {len(rules):,} rules…")
             modified, stats = build_modified_strings(self._vanilla, rules, self._sort_tiers)
 
-            # Ensure the output directory exists (game may not have a strings/ subfolder
-            # if it was never modded before)
+            # Ensure the output directory exists
             out_dir = os.path.dirname(self._output_path)
             if out_dir:
                 os.makedirs(out_dir, exist_ok=True)
@@ -167,6 +180,31 @@ class _CompileWorker(QObject):
                         f"First: {mismatches[0][0]:#010x} expected {mismatches[0][1]!r}"
                     )
                     return
+
+            # Copy vanilla .DLSTRINGS and .ILSTRINGS alongside the compiled .STRINGS.
+            # The Creation Engine looks for ALL three types in Data/strings/ once any
+            # override file exists there — without these, dialogue and descriptions
+            # would show "LOOKUP FAILED".
+            dl_dest = companion_strings_path(self._output_path, ".DLSTRINGS")
+            il_dest = companion_strings_path(self._output_path, ".ILSTRINGS")
+
+            missing_companions = []
+            for src, dest, label in [
+                (self._vanilla_dl_path, dl_dest, "DLSTRINGS"),
+                (self._vanilla_il_path, il_dest, "ILSTRINGS"),
+            ]:
+                if src and os.path.exists(src):
+                    self.progress.emit(f"Copying {label}…")
+                    shutil.copy2(src, dest)
+                else:
+                    missing_companions.append(label)
+
+            if missing_companions:
+                # Emit a warning through the finished signal's status — non-fatal
+                self.progress.emit(
+                    f"⚠  {', '.join(missing_companions)} not found — "
+                    f"run File → Sync with Game Update… to fix dialogue/descriptions"
+                )
 
             self.finished.emit(num_entries, data_size)
 
@@ -375,8 +413,11 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_compile_clicked(self):
-        output_path       = self._settings.value("paths/compiled_output", "")
-        custom_rules_path = self._settings.value("paths/custom_rules", "")
+        s = self._settings
+        output_path       = s.value("paths/compiled_output", "")
+        custom_rules_path = s.value("paths/custom_rules", "")
+        vanilla_dl_path   = s.value("paths/vanilla_dlstrings", "")
+        vanilla_il_path   = s.value("paths/vanilla_ilstrings", "")
 
         if not output_path:
             QMessageBox.warning(
@@ -392,12 +433,14 @@ class MainWindow(QMainWindow):
 
         self._compile_thread = QThread()
         worker = _CompileWorker(
-            vanilla          = self._vanilla,
-            rules            = self._rules,
-            sort_tiers       = self._sort_tiers,
+            vanilla           = self._vanilla,
+            rules             = self._rules,
+            sort_tiers        = self._sort_tiers,
             custom_rules_path = custom_rules_path,
-            output_path      = output_path,
-            verify           = self._verify_check.isChecked(),
+            output_path       = output_path,
+            verify            = self._verify_check.isChecked(),
+            vanilla_dl_path   = vanilla_dl_path,
+            vanilla_il_path   = vanilla_il_path,
         )
         worker.moveToThread(self._compile_thread)
 
@@ -530,8 +573,10 @@ class MainWindow(QMainWindow):
         """File → Sync with Game Update… — re-extract vanilla strings from BA2."""
         s = self._settings
 
-        ba2_path    = s.value("paths/ba2", "")
-        vanilla_out = s.value("paths/vanilla_strings", "")
+        ba2_path       = s.value("paths/ba2", "")
+        vanilla_out    = s.value("paths/vanilla_strings", "")
+        vanilla_dl_out = s.value("paths/vanilla_dlstrings", "")
+        vanilla_il_out = s.value("paths/vanilla_ilstrings", "")
 
         missing = []
         if not ba2_path:    missing.append("BA2 archive  (Settings → Game Update Sync → BA2 archive)")
@@ -552,10 +597,12 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(
             self,
             "Sync with Game Update",
-            f"This will re-extract vanilla strings from the game's BA2 archive "
-            f"and overwrite:\n  • {os.path.basename(vanilla_out)}\n\n"
-            f"Your existing tag rules are preserved — only the vanilla string list "
-            f"is updated.  New items from the patch will appear in search.\n\n"
+            f"This will re-extract all three vanilla string files from the game's BA2:\n"
+            f"  • {os.path.basename(vanilla_out)}  (item names)\n"
+            f"  • {os.path.basename(vanilla_dl_out)}  (dialogue subtitles)\n"
+            f"  • {os.path.basename(vanilla_il_out)}  (item descriptions)\n\n"
+            f"Your existing tag rules are preserved — only the vanilla string lists "
+            f"are updated.  New items from the patch will appear in search.\n\n"
             f"Proceed?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
         )
@@ -568,7 +615,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Syncing with game update…")
 
         self._baseline_thread = QThread()
-        worker = _BaselineUpdater(ba2_path, vanilla_out)
+        worker = _BaselineUpdater(ba2_path, vanilla_out, vanilla_dl_out, vanilla_il_out)
         worker.moveToThread(self._baseline_thread)
 
         self._baseline_thread.started.connect(worker.run)
