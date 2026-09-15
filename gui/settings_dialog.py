@@ -55,17 +55,16 @@ class PathField(QWidget):
 
 class SettingsDialog(QDialog):
     """
-    Six-path configuration dialog, organised into two groups.
+    Five-path configuration dialog, organised into two groups.
 
     Runtime paths (QSettings keys):
       paths/vanilla_strings   — extracted vanilla SeventySix_en.strings
-      paths/rules_json        — tidy_wasteland_analysis.json
+      paths/rules_json        — tidy_wasteland_analysis.json  (our maintained baseline)
       paths/custom_rules      — custom_rules.json  (may not exist yet)
       paths/compiled_output   — destination .STRINGS written to the game folder
 
-    Update Baseline paths:
+    Game Update Sync:
       paths/ba2               — SeventySix - Localization.ba2
-      paths/modded_strings    — Tidy Wasteland mod .STRINGS file
     """
 
     def __init__(self, parent=None, first_run: bool = False):
@@ -126,24 +125,21 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(runtime_group)
 
-        # ---- Group 2: Update Baseline paths ----
-        baseline_group = QGroupBox("Update Baseline  (File → Update Baseline…)")
+        # ---- Group 2: Game Update Sync ----
+        baseline_group = QGroupBox("Game Update Sync  (File → Sync with Game Update…)")
         baseline_form  = QFormLayout(baseline_group)
         baseline_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         baseline_form.setHorizontalSpacing(12)
         baseline_form.setVerticalSpacing(8)
 
-        self._ba2_field    = PathField("BA2 archives (*.ba2);;All Files (*)")
-        self._modded_field = PathField("STRINGS files (*.strings *.STRINGS);;All Files (*)")
-
+        self._ba2_field = PathField("BA2 archives (*.ba2);;All Files (*)")
         baseline_form.addRow("BA2 archive:", self._ba2_field)
-        baseline_form.addRow("Mod strings:", self._modded_field)
 
         baseline_note = QLabel(
             "<small>"
-            "BA2 archive — SeventySix - Localization.ba2 in your FO76 Data\\ folder<br>"
-            "Mod strings — the Tidy Wasteland mod .STRINGS file "
-            "(re-download from Nexus after each game update)"
+            "BA2 archive — SeventySix - Localization.ba2 in your FO76 Data\\ folder.<br>"
+            "After a game patch, use <i>File → Sync with Game Update…</i> to re-extract "
+            "the vanilla string list.  Your existing tag rules are never overwritten."
             "</small>"
         )
         baseline_note.setWordWrap(True)
@@ -166,7 +162,6 @@ class SettingsDialog(QDialog):
         self._custom_field.setText(self._settings.value("paths/custom_rules", ""))
         self._output_field.setText(self._settings.value("paths/compiled_output", ""))
         self._ba2_field.setText(self._settings.value("paths/ba2", ""))
-        self._modded_field.setText(self._settings.value("paths/modded_strings", ""))
 
     def _save_and_accept(self):
         self._settings.setValue("paths/vanilla_strings", self._vanilla_field.text())
@@ -174,5 +169,4 @@ class SettingsDialog(QDialog):
         self._settings.setValue("paths/custom_rules",    self._custom_field.text())
         self._settings.setValue("paths/compiled_output", self._output_field.text())
         self._settings.setValue("paths/ba2",             self._ba2_field.text())
-        self._settings.setValue("paths/modded_strings",  self._modded_field.text())
         self.accept()

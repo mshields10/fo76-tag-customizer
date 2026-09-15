@@ -63,65 +63,41 @@ class _DataLoader(QObject):
 
 
 # ---------------------------------------------------------------------------
-# Background worker: update baseline (extract + diff)
+# Background worker: sync with game update (extract only)
 # ---------------------------------------------------------------------------
 
 class _BaselineUpdater(QObject):
     """
-    Re-extracts vanilla strings from the BA2, then re-diffs against the mod
-    to rebuild the rules JSON.  Runs on a background thread.
+    Re-extracts vanilla strings from the updated BA2 after a game patch.
 
-    Steps:
-      1. extract_from_ba2  → overwrites the vanilla .strings file
-      2. parse both files
-      3. build_rules       → overwrites the rules JSON
+    The rules JSON (data/tidy_wasteland_analysis.json) is our maintained
+    baseline — we do NOT overwrite it here.  Existing items keep their tags.
+    New items added by the patch will appear in the Plan:/Recipe: search
+    tier so users can tag them manually via the GUI.
     """
     progress = Signal(str)
-    finished = Signal(int, int)   # vanilla_count, rules_count
+    finished = Signal(int)   # vanilla_count
     error    = Signal(str)
 
-    # The internal path inside the BA2 is always this — no need to configure it.
     _INTERNAL_PATH = "strings/seventysix_en.strings"
 
-    def __init__(self, ba2_path: str, vanilla_out: str,
-                 modded_path: str, rules_out: str):
+    def __init__(self, ba2_path: str, vanilla_out: str):
         super().__init__()
-        self._ba2_path   = ba2_path
+        self._ba2_path    = ba2_path
         self._vanilla_out = vanilla_out
-        self._modded_path = modded_path
-        self._rules_out  = rules_out
 
     def run(self):
         try:
             from extract_ba2 import extract_from_ba2
             from parser import parse_strings_file
-            from diff import build_rules, SORT_TIERS
 
-            # Step 1 — extract
             self.progress.emit("Extracting vanilla strings from BA2…")
             extract_from_ba2(self._ba2_path, self._INTERNAL_PATH, self._vanilla_out)
 
             vanilla = parse_strings_file(self._vanilla_out)
             self.progress.emit(f"Extracted {len(vanilla):,} vanilla strings")
 
-            # Step 2 — diff
-            self.progress.emit("Parsing mod strings…")
-            modded = parse_strings_file(self._modded_path)
-
-            self.progress.emit("Building rules (diffing vanilla vs mod)…")
-            rules = build_rules(vanilla, modded)
-
-            output = {
-                'sort_tiers':  SORT_TIERS,
-                'total_rules': len(rules),
-                'rules':       rules,
-            }
-
-            self.progress.emit(f"Writing {len(rules):,} rules to JSON…")
-            with open(self._rules_out, 'w', encoding='utf-8') as f:
-                json.dump(output, f, indent=2, ensure_ascii=False)
-
-            self.finished.emit(len(vanilla), len(rules))
+            self.finished.emit(len(vanilla))
 
         except Exception as exc:
             self.error.emit(str(exc))
@@ -236,10 +212,10 @@ class MainWindow(QMainWindow):
 
         file_menu.addSeparator()
 
-        self._update_baseline_action = QAction("&Update Baseline…", self)
+        self._update_baseline_action = QAction("&Sync with Game Update…", self)
         self._update_baseline_action.setStatusTip(
-            "Re-extract vanilla strings from the BA2 and rebuild the rules JSON "
-            "(run this after each game update)"
+            "Re-extract vanilla strings from the BA2 after a game patch — "
+            "existing tags are preserved, new items appear in search"
         )
         self._update_baseline_action.triggered.connect(self._on_update_baseline)
         file_menu.addAction(self._update_baseline_action)
@@ -544,24 +520,20 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_update_baseline(self):
-        """File → Update Baseline… — validate paths, confirm, then run the worker."""
+        """File → Sync with Game Update… — re-extract vanilla strings from BA2."""
         s = self._settings
 
         ba2_path    = s.value("paths/ba2", "")
         vanilla_out = s.value("paths/vanilla_strings", "")
-        modded_path = s.value("paths/modded_strings", "")
-        rules_out   = s.value("paths/rules_json", "")
 
         missing = []
-        if not ba2_path:      missing.append("BA2 archive  (Settings → Update Baseline → BA2 archive)")
-        if not vanilla_out:   missing.append("Vanilla strings output path  (Settings → Runtime paths)")
-        if not modded_path:   missing.append("Mod strings  (Settings → Update Baseline → Mod strings)")
-        if not rules_out:     missing.append("Rules JSON path  (Settings → Runtime paths)")
+        if not ba2_path:    missing.append("BA2 archive  (Settings → Game Update Sync → BA2 archive)")
+        if not vanilla_out: missing.append("Vanilla strings path  (Settings → Runtime paths)")
 
         if missing:
             QMessageBox.warning(
                 self, "Missing paths",
-                "Please set the following paths in Settings before updating the baseline:\n\n"
+                "Please set the following paths in Settings first:\n\n"
                 + "\n".join(f"  • {m}" for m in missing)
             )
             return
@@ -569,19 +541,15 @@ class MainWindow(QMainWindow):
         if not os.path.exists(ba2_path):
             QMessageBox.critical(self, "File not found", f"BA2 archive not found:\n{ba2_path}")
             return
-        if not os.path.exists(modded_path):
-            QMessageBox.critical(self, "File not found", f"Mod strings file not found:\n{modded_path}")
-            return
 
-        # Confirm — this overwrites the vanilla strings file and rules JSON
         reply = QMessageBox.question(
             self,
-            "Update Baseline",
-            f"This will overwrite:\n"
-            f"  • {os.path.basename(vanilla_out)}\n"
-            f"  • {os.path.basename(rules_out)}\n\n"
-            f"Make sure you have the latest Tidy Wasteland mod strings file "
-            f"before continuing.\n\nProceed?",
+            "Sync with Game Update",
+            f"This will re-extract vanilla strings from the game's BA2 archive "
+            f"and overwrite:\n  • {os.path.basename(vanilla_out)}\n\n"
+            f"Your existing tag rules are preserved — only the vanilla string list "
+            f"is updated.  New items from the patch will appear in search.\n\n"
+            f"Proceed?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
         )
         if reply != QMessageBox.StandardButton.Yes:
@@ -590,10 +558,10 @@ class MainWindow(QMainWindow):
         self._update_baseline_action.setEnabled(False)
         self._compile_btn.setEnabled(False)
         self._progress_bar.show()
-        self.statusBar().showMessage("Updating baseline…")
+        self.statusBar().showMessage("Syncing with game update…")
 
         self._baseline_thread = QThread()
-        worker = _BaselineUpdater(ba2_path, vanilla_out, modded_path, rules_out)
+        worker = _BaselineUpdater(ba2_path, vanilla_out)
         worker.moveToThread(self._baseline_thread)
 
         self._baseline_thread.started.connect(worker.run)
@@ -604,28 +572,26 @@ class MainWindow(QMainWindow):
         worker.error.connect(self._baseline_thread.quit)
         self._baseline_thread.finished.connect(self._baseline_thread.deleteLater)
 
-        self._baseline_worker = worker   # prevent GC
+        self._baseline_worker = worker
         self._baseline_thread.start()
 
     def _on_baseline_progress(self, message: str):
         self.statusBar().showMessage(message)
 
-    def _on_baseline_finished(self, vanilla_count: int, rules_count: int):
+    def _on_baseline_finished(self, vanilla_count: int):
         self._progress_bar.hide()
         self._update_baseline_action.setEnabled(True)
         self.statusBar().showMessage(
-            f"✓  Baseline updated — {vanilla_count:,} vanilla strings, "
-            f"{rules_count:,} rules — reloading…"
+            f"✓  Sync complete — {vanilla_count:,} vanilla strings — reloading…"
         )
-        # Reload everything so the GUI reflects the new baseline immediately
         self._load_data()
 
     def _on_baseline_error(self, message: str):
         self._progress_bar.hide()
         self._update_baseline_action.setEnabled(True)
         self._compile_btn.setEnabled(True)
-        self.statusBar().showMessage(f"Baseline update failed: {message}")
-        QMessageBox.critical(self, "Update Baseline failed", message)
+        self.statusBar().showMessage(f"Sync failed: {message}")
+        QMessageBox.critical(self, "Sync with Game Update failed", message)
 
     # ------------------------------------------------------------------
     # Settings
