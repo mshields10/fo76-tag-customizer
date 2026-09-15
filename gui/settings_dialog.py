@@ -4,12 +4,13 @@ Qt concepts used here:
   - QDialog (modal child window)
   - QDialogButtonBox (standard OK / Cancel with platform-correct order)
   - QFileDialog.getOpenFileName (native OS file picker)
+  - QGroupBox: visually groups related form rows under a heading
   - QSettings (key-value store persisted to the registry on Windows;
                no file to manage, survives app restarts automatically)
-  - Custom composite widget (PathField) reused three times
+  - Custom composite widget (PathField) reused throughout
 """
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QWidget,
+    QDialog, QVBoxLayout, QFormLayout, QGroupBox, QWidget,
     QLineEdit, QPushButton, QHBoxLayout, QLabel,
     QFileDialog, QDialogButtonBox
 )
@@ -36,18 +37,15 @@ class PathField(QWidget):
         row.addWidget(self._btn)
 
     def _browse(self):
-        # QFileDialog.getOpenFileName returns (path, selected_filter)
-        # The second return value is the filter string that was active — we discard it.
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Select file",
-            self._edit.text() or "",  # start in the current directory if set
+            self._edit.text() or "",
             self._filter
         )
         if path:
             self._edit.setText(path)
 
-    # Expose text/setText so the dialog can treat PathField like a QLineEdit
     def text(self) -> str:
         return self._edit.text().strip()
 
@@ -57,19 +55,23 @@ class PathField(QWidget):
 
 class SettingsDialog(QDialog):
     """
-    Four-path configuration dialog.
+    Six-path configuration dialog, organised into two groups.
 
-    Paths stored in QSettings:
+    Runtime paths (QSettings keys):
       paths/vanilla_strings   — extracted vanilla SeventySix_en.strings
       paths/rules_json        — tidy_wasteland_analysis.json
       paths/custom_rules      — custom_rules.json  (may not exist yet)
-      paths/compiled_output   — destination .STRINGS file written to the game folder
+      paths/compiled_output   — destination .STRINGS written to the game folder
+
+    Update Baseline paths:
+      paths/ba2               — SeventySix - Localization.ba2
+      paths/modded_strings    — Tidy Wasteland mod .STRINGS file
     """
 
     def __init__(self, parent=None, first_run: bool = False):
         super().__init__(parent)
         self.setWindowTitle("Settings" if not first_run else "First-Run Setup")
-        self.setMinimumWidth(540)
+        self.setMinimumWidth(560)
         self.setModal(True)
 
         self._settings = QSettings()
@@ -78,7 +80,7 @@ class SettingsDialog(QDialog):
 
     def _build_ui(self, first_run: bool):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setSpacing(14)
 
         if first_run:
             intro = QLabel(
@@ -90,43 +92,67 @@ class SettingsDialog(QDialog):
             intro.setTextFormat(Qt.TextFormat.RichText)
             layout.addWidget(intro)
 
-        # Form rows
-        form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        form.setHorizontalSpacing(12)
-        form.setVerticalSpacing(10)
+        # ---- Group 1: Runtime paths ----
+        # QGroupBox draws a labelled border around a section of a form —
+        # a lightweight way to visually separate two categories of settings.
+        runtime_group = QGroupBox("Runtime paths")
+        runtime_form  = QFormLayout(runtime_group)
+        runtime_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        runtime_form.setHorizontalSpacing(12)
+        runtime_form.setVerticalSpacing(8)
 
         self._vanilla_field = PathField("STRINGS files (*.strings *.STRINGS);;All Files (*)")
         self._rules_field   = PathField("JSON files (*.json);;All Files (*)")
         self._custom_field  = PathField("JSON files (*.json);;All Files (*)")
         self._output_field  = PathField("STRINGS files (*.strings *.STRINGS);;All Files (*)")
 
-        form.addRow("Vanilla strings:", self._vanilla_field)
-        form.addRow("Rules JSON:", self._rules_field)
-        form.addRow("Custom rules JSON:", self._custom_field)
-        form.addRow("Game strings (output):", self._output_field)
+        runtime_form.addRow("Vanilla strings:", self._vanilla_field)
+        runtime_form.addRow("Rules JSON:", self._rules_field)
+        runtime_form.addRow("Custom rules JSON:", self._custom_field)
+        runtime_form.addRow("Game strings (output):", self._output_field)
 
-        # Helper text
-        note = QLabel(
+        runtime_note = QLabel(
             "<small>"
-            "Vanilla strings — extracted from SeventySix - Localization.ba2 "
-            "(CLI: <code>python run.py extract</code>)<br>"
-            "Rules JSON — tidy_wasteland_analysis.json from the data/ folder<br>"
-            "Custom rules — your personal overrides file (created if missing)<br>"
-            "Game strings — the .STRINGS file in your FO76 Data\\strings\\ folder "
-            "(overwritten on Compile &amp; Deploy)"
+            "Vanilla strings — extracted from the BA2 (see Update Baseline below)<br>"
+            "Rules JSON — rebuilt by Update Baseline; lives in the data/ folder<br>"
+            "Custom rules — your personal overrides (created automatically if missing)<br>"
+            "Game strings — .STRINGS file in FO76 Data\\strings\\ (overwritten on Compile)"
             "</small>"
         )
-        note.setWordWrap(True)
-        note.setTextFormat(Qt.TextFormat.RichText)
-        note.setStyleSheet("color: #888; padding-top: 4px;")
+        runtime_note.setWordWrap(True)
+        runtime_note.setTextFormat(Qt.TextFormat.RichText)
+        runtime_note.setStyleSheet("color: #888; margin-top: 4px;")
+        runtime_form.addRow(runtime_note)
 
-        layout.addLayout(form)
-        layout.addWidget(note)
+        layout.addWidget(runtime_group)
 
-        # Standard OK / Cancel buttons
-        # QDialogButtonBox handles platform button order automatically (e.g. OK left on
-        # Windows, right on macOS) — a small but appreciated native-feel detail.
+        # ---- Group 2: Update Baseline paths ----
+        baseline_group = QGroupBox("Update Baseline  (File → Update Baseline…)")
+        baseline_form  = QFormLayout(baseline_group)
+        baseline_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        baseline_form.setHorizontalSpacing(12)
+        baseline_form.setVerticalSpacing(8)
+
+        self._ba2_field    = PathField("BA2 archives (*.ba2);;All Files (*)")
+        self._modded_field = PathField("STRINGS files (*.strings *.STRINGS);;All Files (*)")
+
+        baseline_form.addRow("BA2 archive:", self._ba2_field)
+        baseline_form.addRow("Mod strings:", self._modded_field)
+
+        baseline_note = QLabel(
+            "<small>"
+            "BA2 archive — SeventySix - Localization.ba2 in your FO76 Data\\ folder<br>"
+            "Mod strings — the Tidy Wasteland mod .STRINGS file "
+            "(re-download from Nexus after each game update)"
+            "</small>"
+        )
+        baseline_note.setWordWrap(True)
+        baseline_note.setTextFormat(Qt.TextFormat.RichText)
+        baseline_note.setStyleSheet("color: #888; margin-top: 4px;")
+        baseline_form.addRow(baseline_note)
+
+        layout.addWidget(baseline_group)
+
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -139,10 +165,14 @@ class SettingsDialog(QDialog):
         self._rules_field.setText(self._settings.value("paths/rules_json", ""))
         self._custom_field.setText(self._settings.value("paths/custom_rules", ""))
         self._output_field.setText(self._settings.value("paths/compiled_output", ""))
+        self._ba2_field.setText(self._settings.value("paths/ba2", ""))
+        self._modded_field.setText(self._settings.value("paths/modded_strings", ""))
 
     def _save_and_accept(self):
         self._settings.setValue("paths/vanilla_strings", self._vanilla_field.text())
         self._settings.setValue("paths/rules_json",      self._rules_field.text())
         self._settings.setValue("paths/custom_rules",    self._custom_field.text())
         self._settings.setValue("paths/compiled_output", self._output_field.text())
+        self._settings.setValue("paths/ba2",             self._ba2_field.text())
+        self._settings.setValue("paths/modded_strings",  self._modded_field.text())
         self.accept()

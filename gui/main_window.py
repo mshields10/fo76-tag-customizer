@@ -11,6 +11,7 @@ Qt concepts used here:
   - QSettings: reads the path config written by SettingsDialog
 """
 import os
+import re
 import json
 
 from PySide6.QtWidgets import (
@@ -57,6 +58,71 @@ class _DataLoader(QObject):
             rules      = data.get('rules', [])
 
             self.finished.emit(vanilla, sort_tiers, rules)
+        except Exception as exc:
+            self.error.emit(str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Background worker: update baseline (extract + diff)
+# ---------------------------------------------------------------------------
+
+class _BaselineUpdater(QObject):
+    """
+    Re-extracts vanilla strings from the BA2, then re-diffs against the mod
+    to rebuild the rules JSON.  Runs on a background thread.
+
+    Steps:
+      1. extract_from_ba2  → overwrites the vanilla .strings file
+      2. parse both files
+      3. build_rules       → overwrites the rules JSON
+    """
+    progress = Signal(str)
+    finished = Signal(int, int)   # vanilla_count, rules_count
+    error    = Signal(str)
+
+    # The internal path inside the BA2 is always this — no need to configure it.
+    _INTERNAL_PATH = "strings/seventysix_en.strings"
+
+    def __init__(self, ba2_path: str, vanilla_out: str,
+                 modded_path: str, rules_out: str):
+        super().__init__()
+        self._ba2_path   = ba2_path
+        self._vanilla_out = vanilla_out
+        self._modded_path = modded_path
+        self._rules_out  = rules_out
+
+    def run(self):
+        try:
+            from extract_ba2 import extract_from_ba2
+            from parser import parse_strings_file
+            from diff import build_rules, SORT_TIERS
+
+            # Step 1 — extract
+            self.progress.emit("Extracting vanilla strings from BA2…")
+            extract_from_ba2(self._ba2_path, self._INTERNAL_PATH, self._vanilla_out)
+
+            vanilla = parse_strings_file(self._vanilla_out)
+            self.progress.emit(f"Extracted {len(vanilla):,} vanilla strings")
+
+            # Step 2 — diff
+            self.progress.emit("Parsing mod strings…")
+            modded = parse_strings_file(self._modded_path)
+
+            self.progress.emit("Building rules (diffing vanilla vs mod)…")
+            rules = build_rules(vanilla, modded)
+
+            output = {
+                'sort_tiers':  SORT_TIERS,
+                'total_rules': len(rules),
+                'rules':       rules,
+            }
+
+            self.progress.emit(f"Writing {len(rules):,} rules to JSON…")
+            with open(self._rules_out, 'w', encoding='utf-8') as f:
+                json.dump(output, f, indent=2, ensure_ascii=False)
+
+            self.finished.emit(len(vanilla), len(rules))
+
         except Exception as exc:
             self.error.emit(str(exc))
 
@@ -148,8 +214,9 @@ class MainWindow(QMainWindow):
         self._settings         = QSettings()
 
         # Thread refs kept on self so they aren't garbage-collected mid-run
-        self._load_thread: QThread | None    = None
-        self._compile_thread: QThread | None = None
+        self._load_thread:     QThread | None = None
+        self._compile_thread:  QThread | None = None
+        self._baseline_thread: QThread | None = None
 
         self._build_menu()
         self._build_ui()
@@ -166,6 +233,16 @@ class MainWindow(QMainWindow):
         settings_action.setStatusTip("Configure file paths")
         settings_action.triggered.connect(self._open_settings)
         file_menu.addAction(settings_action)
+
+        file_menu.addSeparator()
+
+        self._update_baseline_action = QAction("&Update Baseline…", self)
+        self._update_baseline_action.setStatusTip(
+            "Re-extract vanilla strings from the BA2 and rebuild the rules JSON "
+            "(run this after each game update)"
+        )
+        self._update_baseline_action.triggered.connect(self._on_update_baseline)
+        file_menu.addAction(self._update_baseline_action)
 
         file_menu.addSeparator()
 
@@ -377,12 +454,54 @@ class MainWindow(QMainWindow):
         self._vanilla    = vanilla
         self._sort_tiers = sort_tiers
         self._rules      = rules
-        self._search_bar.set_data(vanilla)
+
+        focused, full = self._build_search_dicts(vanilla, rules)
+        self._search_bar.set_data(focused, full)
+        self._search_bar._all_check.setEnabled(True)
+
         self._tag_editor.set_sort_tiers(sort_tiers)
         self._compile_btn.setEnabled(True)
         self.statusBar().showMessage(
             f"Loaded {len(vanilla):,} items  •  {len(rules):,} rules  •  Ready"
         )
+
+    @staticmethod
+    def _build_search_dicts(vanilla: dict, rules: list) -> tuple[dict, dict]:
+        """
+        Build the two search datasets from vanilla strings + mod rules.
+
+        focused — Tier 1: items the mod already handles (rules JSON)
+                  Tier 2: Plan:/Recipe:/Formula: strings NOT yet in the mod
+                  Total: ~7,300 items, essentially zero noise.
+
+        full    — Everything in vanilla that passes basic heuristics:
+                  no newlines, ≤80 chars, no engine/script characters.
+                  ~146,000 items — still broad but strips the worst noise.
+        """
+        rule_fids = {int(r["form_id"], 16) for r in rules}
+
+        # Tier 1: mod-known items (all 6,147 rules, keyed by form_id)
+        tier1 = {fid: name for fid, name in vanilla.items() if fid in rule_fids}
+
+        # Tier 2: Plan:/Recipe:/Formula: items not yet covered by the mod
+        prefixes = ("plan:", "recipe:", "formula:")
+        tier2 = {
+            fid: name for fid, name in vanilla.items()
+            if fid not in rule_fids and name.lower().startswith(prefixes)
+        }
+
+        focused = {**tier1, **tier2}
+
+        # Full dataset: heuristic-cleaned vanilla
+        _noisy = re.compile(r"[<{$\[]")
+        full = {
+            fid: name for fid, name in vanilla.items()
+            if "\n" not in name
+            and len(name) <= 80
+            and not _noisy.search(name)
+        }
+
+        return focused, full
 
     def _on_data_error(self, message: str):
         self.statusBar().showMessage(f"Load error: {message}")
@@ -419,6 +538,94 @@ class MainWindow(QMainWindow):
             )
         except Exception as exc:
             QMessageBox.critical(self, "Error saving rule", str(exc))
+
+    # ------------------------------------------------------------------
+    # Update Baseline
+    # ------------------------------------------------------------------
+
+    def _on_update_baseline(self):
+        """File → Update Baseline… — validate paths, confirm, then run the worker."""
+        s = self._settings
+
+        ba2_path    = s.value("paths/ba2", "")
+        vanilla_out = s.value("paths/vanilla_strings", "")
+        modded_path = s.value("paths/modded_strings", "")
+        rules_out   = s.value("paths/rules_json", "")
+
+        missing = []
+        if not ba2_path:      missing.append("BA2 archive  (Settings → Update Baseline → BA2 archive)")
+        if not vanilla_out:   missing.append("Vanilla strings output path  (Settings → Runtime paths)")
+        if not modded_path:   missing.append("Mod strings  (Settings → Update Baseline → Mod strings)")
+        if not rules_out:     missing.append("Rules JSON path  (Settings → Runtime paths)")
+
+        if missing:
+            QMessageBox.warning(
+                self, "Missing paths",
+                "Please set the following paths in Settings before updating the baseline:\n\n"
+                + "\n".join(f"  • {m}" for m in missing)
+            )
+            return
+
+        if not os.path.exists(ba2_path):
+            QMessageBox.critical(self, "File not found", f"BA2 archive not found:\n{ba2_path}")
+            return
+        if not os.path.exists(modded_path):
+            QMessageBox.critical(self, "File not found", f"Mod strings file not found:\n{modded_path}")
+            return
+
+        # Confirm — this overwrites the vanilla strings file and rules JSON
+        reply = QMessageBox.question(
+            self,
+            "Update Baseline",
+            f"This will overwrite:\n"
+            f"  • {os.path.basename(vanilla_out)}\n"
+            f"  • {os.path.basename(rules_out)}\n\n"
+            f"Make sure you have the latest Tidy Wasteland mod strings file "
+            f"before continuing.\n\nProceed?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self._update_baseline_action.setEnabled(False)
+        self._compile_btn.setEnabled(False)
+        self._progress_bar.show()
+        self.statusBar().showMessage("Updating baseline…")
+
+        self._baseline_thread = QThread()
+        worker = _BaselineUpdater(ba2_path, vanilla_out, modded_path, rules_out)
+        worker.moveToThread(self._baseline_thread)
+
+        self._baseline_thread.started.connect(worker.run)
+        worker.progress.connect(self._on_baseline_progress)
+        worker.finished.connect(self._on_baseline_finished)
+        worker.error.connect(self._on_baseline_error)
+        worker.finished.connect(self._baseline_thread.quit)
+        worker.error.connect(self._baseline_thread.quit)
+        self._baseline_thread.finished.connect(self._baseline_thread.deleteLater)
+
+        self._baseline_worker = worker   # prevent GC
+        self._baseline_thread.start()
+
+    def _on_baseline_progress(self, message: str):
+        self.statusBar().showMessage(message)
+
+    def _on_baseline_finished(self, vanilla_count: int, rules_count: int):
+        self._progress_bar.hide()
+        self._update_baseline_action.setEnabled(True)
+        self.statusBar().showMessage(
+            f"✓  Baseline updated — {vanilla_count:,} vanilla strings, "
+            f"{rules_count:,} rules — reloading…"
+        )
+        # Reload everything so the GUI reflects the new baseline immediately
+        self._load_data()
+
+    def _on_baseline_error(self, message: str):
+        self._progress_bar.hide()
+        self._update_baseline_action.setEnabled(True)
+        self._compile_btn.setEnabled(True)
+        self.statusBar().showMessage(f"Baseline update failed: {message}")
+        QMessageBox.critical(self, "Update Baseline failed", message)
 
     # ------------------------------------------------------------------
     # Settings
