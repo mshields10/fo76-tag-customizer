@@ -10,7 +10,7 @@ Qt concepts used here:
 """
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLabel, QComboBox, QLineEdit, QPushButton, QFrame, QRadioButton
+    QLabel, QComboBox, QLineEdit, QPushButton, QFrame, QRadioButton, QButtonGroup
 )
 from PySide6.QtCore import Signal, Qt
 
@@ -26,7 +26,12 @@ class TagEditor(QWidget):
     It only manages UI state and emits raw values upward.
     """
 
-    # Signal carries everything the parent needs to call build_rule() or build_freeform_rule()
+    # Signal carries everything the parent needs to call build_rule() or build_freeform_rule().
+    # When tier_key is set (sort-tier mode):
+    #   prefix  = source tag text (e.g. "BURN", "Infest") — empty means no tag
+    #   suffix  = tag position ("suffix" or "before_plan")
+    # When tier_key is None (freeform mode):
+    #   prefix/suffix = literal text prepended/appended to the name
     rule_ready = Signal(int, str, object, str, str)
     # (form_id: int, vanilla_name: str, tier_key: str|None, prefix: str, suffix: str)
 
@@ -101,6 +106,30 @@ class TagEditor(QWidget):
         self._tier_combo.setMinimumWidth(300)
         form.addRow("Sort tier:", self._tier_combo)
 
+        # Source tag (Sort tier mode, optional) — for event/raid legendary mods
+        self._tag_edit = QLineEdit()
+        self._tag_edit.setPlaceholderText("Event/source label  e.g. BURN, Infest  (optional)")
+        self._tag_label = QLabel("Source tag:")
+        form.addRow(self._tag_label, self._tag_edit)
+
+        # Tag position — only meaningful when source tag is filled
+        pos_widget = QWidget()
+        pos_row = QHBoxLayout(pos_widget)
+        pos_row.setContentsMargins(0, 0, 0, 0)
+        pos_row.setSpacing(16)
+        self._pos_suffix_radio    = QRadioButton("After name  (e.g. ★★★ Glowing [BURN])")
+        self._pos_prefix_radio    = QRadioButton("Before name  (e.g. ★★★ [BURN] Glowing — sorts by source)")
+        self._pos_suffix_radio.setChecked(True)
+        self._pos_group = QButtonGroup(self)
+        self._pos_group.addButton(self._pos_suffix_radio)
+        self._pos_group.addButton(self._pos_prefix_radio)
+        pos_row.addWidget(self._pos_suffix_radio)
+        pos_row.addWidget(self._pos_prefix_radio)
+        pos_row.addStretch()
+        self._pos_label = QLabel("Tag position:")
+        form.addRow(self._pos_label, pos_widget)
+        self._pos_widget = pos_widget
+
         # Prefix / suffix (Freeform mode) — initially hidden
         self._prefix_edit = QLineEdit()
         self._prefix_edit.setPlaceholderText("Text prepended before the item name  (optional)")
@@ -135,6 +164,8 @@ class TagEditor(QWidget):
 
         # Wire live preview signals
         self._tier_combo.currentIndexChanged.connect(self._update_preview)
+        self._tag_edit.textChanged.connect(self._update_preview)
+        self._pos_group.buttonToggled.connect(self._update_preview)
         self._prefix_edit.textChanged.connect(self._update_preview)
         self._suffix_edit.textChanged.connect(self._update_preview)
 
@@ -152,6 +183,10 @@ class TagEditor(QWidget):
         """Show/hide fields depending on which radio button is active."""
         is_sort = self._sort_radio.isChecked()
         self._tier_combo.setVisible(is_sort)
+        self._tag_label.setVisible(is_sort)
+        self._tag_edit.setVisible(is_sort)
+        self._pos_label.setVisible(is_sort)
+        self._pos_widget.setVisible(is_sort)
 
         # FormLayout rows don't have a single show/hide handle, so toggle each widget
         self._prefix_label.setVisible(not is_sort)
@@ -170,12 +205,20 @@ class TagEditor(QWidget):
         if self._sort_radio.isChecked():
             key = self._tier_combo.currentData()
             if key and self._sort_tiers:
-                info    = self._sort_tiers[key]
-                symbol  = info.get('symbol', '')
-                spaces  = info.get('lead_spaces', 0)
-                # Show leading spaces visually.  We use the real spaces here
-                # (not dots) so the preview matches the actual compiled output.
-                preview = f"{' ' * spaces}{symbol} {self._vanilla_name}"
+                info   = self._sort_tiers[key]
+                symbol = info.get('symbol', '')
+                spaces = info.get('lead_spaces', 0)
+                tag    = self._tag_edit.text().strip()
+                tag_str = f' [{tag}]' if tag else ''
+
+                if tag and self._pos_prefix_radio.isChecked():
+                    # Before name: ★★★ [BURN] Glowing
+                    name_part = f'[{tag}] {self._vanilla_name}'
+                else:
+                    # After name (default): ★★★ Glowing [BURN]
+                    name_part = f'{self._vanilla_name}{tag_str}'
+
+                preview = f"{' ' * spaces}{symbol} {name_part}"
                 self._preview_label.setText(preview)
             else:
                 self._preview_label.setText("—")
@@ -190,8 +233,12 @@ class TagEditor(QWidget):
             return
 
         if self._sort_radio.isChecked():
-            tier_key = self._tier_combo.currentData()
-            self.rule_ready.emit(self._form_id, self._vanilla_name, tier_key, "", "")
+            tier_key     = self._tier_combo.currentData()
+            source_tag   = self._tag_edit.text().strip()
+            tag_position = "before_plan" if self._pos_prefix_radio.isChecked() else "suffix"
+            # In sort-tier mode the signal reuses prefix=source_tag, suffix=tag_position
+            self.rule_ready.emit(self._form_id, self._vanilla_name, tier_key,
+                                 source_tag, tag_position)
         else:
             prefix = self._prefix_edit.text()
             suffix = self._suffix_edit.text()

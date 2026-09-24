@@ -39,6 +39,11 @@
       "symbol": "¶",
       "lead_spaces": 1,
       "description": "Worth-reading magazine (renders as a stacked-papers icon; paired with a 'Mag: ' name prefix)"
+    },
+    "legendary": {
+      "symbol": "¬¬¬¬",
+      "lead_spaces": 5,
+      "description": "Legendary 4-star (renders as ★★★★)"
     }
   },
   "total_rules": 6147,
@@ -29094,12 +29099,12 @@
     {
       "form_id": "0x3929a669",
       "vanilla_name": "¬¬¬¬ Satiated",
-      "modded_name": "¬¬¬¬ Satiated [Infest]",
-      "sort_tier": null,
+      "modded_name": "     ¬¬¬¬ Satiated [Infest]",
+      "sort_tier": "legendary",
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Satiated"
     },
@@ -55510,12 +55515,12 @@
     {
       "form_id": "0x61028905",
       "vanilla_name": "¬ Lucid",
-      "modded_name": "¬ Lucid [BURN]",
+      "modded_name": " ¬ Lucid [BURN]",
       "sort_tier": "rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Lucid"
     },
@@ -55624,12 +55629,12 @@
     {
       "form_id": "0x610299e1",
       "vanilla_name": "¬¬ Fierce",
-      "modded_name": "¬¬ Fierce [BURN]",
+      "modded_name": "   ¬¬ Fierce [BURN]",
       "sort_tier": "very_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Fierce"
     },
@@ -55672,12 +55677,12 @@
     {
       "form_id": "0x61029e0f",
       "vanilla_name": "¬¬ Elementalist",
-      "modded_name": "¬¬ Elementalist [BURN]",
+      "modded_name": "   ¬¬ Elementalist [BURN]",
       "sort_tier": "very_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Elementalist"
     },
@@ -57622,96 +57627,96 @@
     {
       "form_id": "0x7101019b",
       "vanilla_name": "¬ Adrenal",
-      "modded_name": "¬ Adrenal [BURN]",
+      "modded_name": " ¬ Adrenal [BURN]",
       "sort_tier": "rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Adrenal"
     },
     {
       "form_id": "0x7101019c",
       "vanilla_name": "¬¬¬ Active",
-      "modded_name": "¬¬¬ Active [BURN]",
+      "modded_name": "    ¬¬¬ Active [BURN]",
       "sort_tier": "ultra_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Active"
     },
     {
       "form_id": "0x7101019d",
       "vanilla_name": "¬¬¬ Glowing",
-      "modded_name": "¬¬¬ Glowing [BURN]",
+      "modded_name": "    ¬¬¬ Glowing [BURN]",
       "sort_tier": "ultra_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Glowing"
     },
     {
       "form_id": "0x7101019e",
       "vanilla_name": "¬¬ Pick Pocketer's",
-      "modded_name": "¬¬ Pick Pocketer's [BURN]",
+      "modded_name": "   ¬¬ Pick Pocketer's [BURN]",
       "sort_tier": "very_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Pick Pocketer's"
     },
     {
       "form_id": "0x710101a0",
       "vanilla_name": "¬ Feral's",
-      "modded_name": "¬ Feral's [BURN]",
+      "modded_name": " ¬ Feral's [BURN]",
       "sort_tier": "rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Feral's"
     },
     {
       "form_id": "0x710101a1",
       "vanilla_name": "¬¬¬ Reflex",
-      "modded_name": "¬¬¬ Reflex [BURN]",
+      "modded_name": "    ¬¬¬ Reflex [BURN]",
       "sort_tier": "ultra_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Reflex"
     },
     {
       "form_id": "0x710101a2",
       "vanilla_name": "¬¬¬ Healthy",
-      "modded_name": "¬¬¬ Healthy [BURN]",
+      "modded_name": "    ¬¬¬ Healthy [BURN]",
       "sort_tier": "ultra_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Healthy"
     },
     {
       "form_id": "0x710101a4",
       "vanilla_name": "¬ Sniper's",
-      "modded_name": "¬ Sniper's [BURN]",
+      "modded_name": " ¬ Sniper's [BURN]",
       "sort_tier": "rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Sniper's"
     },
@@ -57800,12 +57805,12 @@
     {
       "form_id": "0x710121a8",
       "vanilla_name": "¬¬¬ Barbarian",
-      "modded_name": "¬¬¬ Barbarian [BURN]",
+      "modded_name": "    ¬¬¬ Barbarian [BURN]",
       "sort_tier": "ultra_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Barbarian"
     },
@@ -57962,24 +57967,24 @@
     {
       "form_id": "0x710139cc",
       "vanilla_name": "¬¬ Rushing",
-      "modded_name": "¬¬ Rushing [BURN]",
+      "modded_name": "   ¬¬ Rushing [BURN]",
       "sort_tier": "very_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Rushing"
     },
     {
       "form_id": "0x710139cd",
       "vanilla_name": "¬¬ Pain Killer",
-      "modded_name": "¬¬ Pain Killer [BURN]",
+      "modded_name": "   ¬¬ Pain Killer [BURN]",
       "sort_tier": "very_rare",
       "tags": [
         "BURN"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Pain Killer"
     },
@@ -58060,60 +58065,60 @@
     {
       "form_id": "0x7101470d",
       "vanilla_name": "¬¬¬¬ Satiated",
-      "modded_name": "¬¬¬¬ Satiated [Infest]",
-      "sort_tier": null,
+      "modded_name": "     ¬¬¬¬ Satiated [Infest]",
+      "sort_tier": "legendary",
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Satiated"
     },
     {
       "form_id": "0x7101470e",
       "vanilla_name": "¬¬¬¬ Hauler's",
-      "modded_name": "¬¬¬¬ Hauler's [Infest]",
-      "sort_tier": null,
+      "modded_name": "     ¬¬¬¬ Hauler's [Infest]",
+      "sort_tier": "legendary",
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Hauler's"
     },
     {
       "form_id": "0x7101470f",
       "vanilla_name": "¬¬¬¬ Tarnished",
-      "modded_name": "¬¬¬¬ Tarnished [Infest]",
-      "sort_tier": null,
+      "modded_name": "     ¬¬¬¬ Tarnished [Infest]",
+      "sort_tier": "legendary",
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Tarnished"
     },
     {
       "form_id": "0x71014711",
       "vanilla_name": "¬¬¬¬ Raging",
-      "modded_name": "¬¬¬¬ Raging [Infest]",
-      "sort_tier": null,
+      "modded_name": "     ¬¬¬¬ Raging [Infest]",
+      "sort_tier": "legendary",
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Raging"
     },
     {
       "form_id": "0x71014c1f",
       "vanilla_name": "¬¬¬¬ Vector",
-      "modded_name": "¬¬¬¬ Vector [Infest]",
-      "sort_tier": null,
+      "modded_name": "     ¬¬¬¬ Vector [Infest]",
+      "sort_tier": "legendary",
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Vector"
     },
@@ -58125,7 +58130,7 @@
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Scrap Kit"
     },
@@ -58137,7 +58142,7 @@
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Mystery Magazine Package"
     },
@@ -58149,7 +58154,7 @@
       "tags": [
         "Infest"
       ],
-      "tag_position": "before_plan",
+      "tag_position": "suffix",
       "display_name": null,
       "base_name": "Mystery Bobblehead Box"
     },

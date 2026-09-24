@@ -53,8 +53,12 @@ def apply_rule(vanilla_name, rule, sort_tiers):
                 result = result[:idx + 2] + bonus + tag_str + ' ' + result[idx + 2:]
             else:
                 result = tag_str + ' ' + result
+        elif tag_pos == 'suffix':
+            # Tag appended after the name — used for legendary mod source tags so
+            # the sort stars lead: e.g. "★★★ Glowing [BURN]" not "★★★ [BURN] Glowing".
+            result = result + ' ' + tag_str
         else:
-            # before_plan: tags precede the whole string
+            # before_plan (default): tags precede the whole string
             result = tag_str + ' ' + result
 
     # Prepend sort symbol, padded with leading spaces so it still sorts to the top of

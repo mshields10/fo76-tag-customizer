@@ -70,24 +70,31 @@ def build_freeform_rule(form_id, vanilla_name, prefix, suffix):
     }
 
 
-def build_rule(form_id, vanilla_name, symbol_key, sort_tiers):
+def build_rule(form_id, vanilla_name, symbol_key, sort_tiers,
+               source_tag: str = '', tag_position: str = 'suffix'):
     """Build a custom_rules.json entry that applies the given sort tier to vanilla_name.
 
     Sets sort_tier (not display_name) so that apply_rule() handles all spacing
     and symbol logic consistently — the same path used for every mod-covered item.
-    display_name is explicitly null so it doesn't short-circuit apply_rule().
+
+    source_tag    — optional event/source label like 'BURN' or 'Infest'.
+                    When set, it is wrapped in brackets and placed according to
+                    tag_position.
+    tag_position  — 'suffix'      → ★★★ Name [TAG]   (default, sort by name)
+                    'before_plan' → ★★★ [TAG] Name    (sort by source within tier)
     """
     if symbol_key not in sort_tiers:
         valid = ', '.join(sort_tiers)
         raise KeyError(f'Unknown symbol tier "{symbol_key}". Valid tiers: {valid}')
 
+    tag = source_tag.strip()
     return {
         'form_id':      f'{form_id:#010x}',
         'vanilla_name': vanilla_name,
         'base_name':    vanilla_name,
         'sort_tier':    symbol_key,
-        'tags':         [],
-        'tag_position': None,
+        'tags':         [tag] if tag else [],
+        'tag_position': tag_position if tag else None,
         'display_name': None,
     }
 

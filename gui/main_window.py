@@ -554,7 +554,12 @@ class MainWindow(QMainWindow):
         from tagger import build_rule, build_freeform_rule, upsert_custom_rule
         try:
             if tier_key:
-                rule = build_rule(form_id, vanilla_name, tier_key, self._sort_tiers)
+                # In sort-tier mode, prefix=source_tag and suffix=tag_position
+                # (see TagEditor signal docstring)
+                source_tag   = prefix
+                tag_position = suffix or "suffix"
+                rule = build_rule(form_id, vanilla_name, tier_key, self._sort_tiers,
+                                  source_tag=source_tag, tag_position=tag_position)
             else:
                 rule = build_freeform_rule(form_id, vanilla_name, prefix, suffix)
 
