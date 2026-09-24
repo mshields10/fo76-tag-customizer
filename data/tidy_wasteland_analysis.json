@@ -29099,14 +29099,14 @@
     {
       "form_id": "0x3929a669",
       "vanilla_name": "¬¬¬¬ Satiated",
-      "modded_name": "     ¬¬¬¬ Satiated [Infest]",
-      "sort_tier": "legendary",
+      "modded_name": "¬¬¬¬ Satiated [Infest]",
+      "sort_tier": null,
       "tags": [
         "Infest"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Satiated"
+      "base_name": "¬¬¬¬ Satiated"
     },
     {
       "form_id": "0x3929ae09",
@@ -55515,14 +55515,14 @@
     {
       "form_id": "0x61028905",
       "vanilla_name": "¬ Lucid",
-      "modded_name": " ¬ Lucid [BURN]",
-      "sort_tier": "rare",
+      "modded_name": "¬ Lucid [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Lucid"
+      "base_name": "¬ Lucid"
     },
     {
       "form_id": "0x6102891a",
@@ -55629,14 +55629,14 @@
     {
       "form_id": "0x610299e1",
       "vanilla_name": "¬¬ Fierce",
-      "modded_name": "   ¬¬ Fierce [BURN]",
-      "sort_tier": "very_rare",
+      "modded_name": "¬¬ Fierce [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Fierce"
+      "base_name": "¬¬ Fierce"
     },
     {
       "form_id": "0x61029d66",
@@ -55677,14 +55677,14 @@
     {
       "form_id": "0x61029e0f",
       "vanilla_name": "¬¬ Elementalist",
-      "modded_name": "   ¬¬ Elementalist [BURN]",
-      "sort_tier": "very_rare",
+      "modded_name": "¬¬ Elementalist [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Elementalist"
+      "base_name": "¬¬ Elementalist"
     },
     {
       "form_id": "0x6102a062",
@@ -57627,98 +57627,98 @@
     {
       "form_id": "0x7101019b",
       "vanilla_name": "¬ Adrenal",
-      "modded_name": " ¬ Adrenal [BURN]",
-      "sort_tier": "rare",
+      "modded_name": "¬ Adrenal [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Adrenal"
+      "base_name": "¬ Adrenal"
     },
     {
       "form_id": "0x7101019c",
       "vanilla_name": "¬¬¬ Active",
-      "modded_name": "    ¬¬¬ Active [BURN]",
-      "sort_tier": "ultra_rare",
+      "modded_name": "¬¬¬ Active [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Active"
+      "base_name": "¬¬¬ Active"
     },
     {
       "form_id": "0x7101019d",
       "vanilla_name": "¬¬¬ Glowing",
-      "modded_name": "    ¬¬¬ Glowing [BURN]",
-      "sort_tier": "ultra_rare",
+      "modded_name": "¬¬¬ Glowing [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Glowing"
+      "base_name": "¬¬¬ Glowing"
     },
     {
       "form_id": "0x7101019e",
       "vanilla_name": "¬¬ Pick Pocketer's",
-      "modded_name": "   ¬¬ Pick Pocketer's [BURN]",
-      "sort_tier": "very_rare",
+      "modded_name": "¬¬ Pick Pocketer's [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Pick Pocketer's"
+      "base_name": "¬¬ Pick Pocketer's"
     },
     {
       "form_id": "0x710101a0",
       "vanilla_name": "¬ Feral's",
-      "modded_name": " ¬ Feral's [BURN]",
-      "sort_tier": "rare",
+      "modded_name": "¬ Feral's [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Feral's"
+      "base_name": "¬ Feral's"
     },
     {
       "form_id": "0x710101a1",
       "vanilla_name": "¬¬¬ Reflex",
-      "modded_name": "    ¬¬¬ Reflex [BURN]",
-      "sort_tier": "ultra_rare",
+      "modded_name": "¬¬¬ Reflex [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Reflex"
+      "base_name": "¬¬¬ Reflex"
     },
     {
       "form_id": "0x710101a2",
       "vanilla_name": "¬¬¬ Healthy",
-      "modded_name": "    ¬¬¬ Healthy [BURN]",
-      "sort_tier": "ultra_rare",
+      "modded_name": "¬¬¬ Healthy [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Healthy"
+      "base_name": "¬¬¬ Healthy"
     },
     {
       "form_id": "0x710101a4",
       "vanilla_name": "¬ Sniper's",
-      "modded_name": " ¬ Sniper's [BURN]",
-      "sort_tier": "rare",
+      "modded_name": "¬ Sniper's [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Sniper's"
+      "base_name": "¬ Sniper's"
     },
     {
       "form_id": "0x710101a5",
@@ -57805,14 +57805,14 @@
     {
       "form_id": "0x710121a8",
       "vanilla_name": "¬¬¬ Barbarian",
-      "modded_name": "    ¬¬¬ Barbarian [BURN]",
-      "sort_tier": "ultra_rare",
+      "modded_name": "¬¬¬ Barbarian [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Barbarian"
+      "base_name": "¬¬¬ Barbarian"
     },
     {
       "form_id": "0x710121aa",
@@ -57967,26 +57967,26 @@
     {
       "form_id": "0x710139cc",
       "vanilla_name": "¬¬ Rushing",
-      "modded_name": "   ¬¬ Rushing [BURN]",
-      "sort_tier": "very_rare",
+      "modded_name": "¬¬ Rushing [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Rushing"
+      "base_name": "¬¬ Rushing"
     },
     {
       "form_id": "0x710139cd",
       "vanilla_name": "¬¬ Pain Killer",
-      "modded_name": "   ¬¬ Pain Killer [BURN]",
-      "sort_tier": "very_rare",
+      "modded_name": "¬¬ Pain Killer [BURN]",
+      "sort_tier": null,
       "tags": [
         "BURN"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Pain Killer"
+      "base_name": "¬¬ Pain Killer"
     },
     {
       "form_id": "0x710140e3",
@@ -58065,62 +58065,62 @@
     {
       "form_id": "0x7101470d",
       "vanilla_name": "¬¬¬¬ Satiated",
-      "modded_name": "     ¬¬¬¬ Satiated [Infest]",
-      "sort_tier": "legendary",
+      "modded_name": "¬¬¬¬ Satiated [Infest]",
+      "sort_tier": null,
       "tags": [
         "Infest"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Satiated"
+      "base_name": "¬¬¬¬ Satiated"
     },
     {
       "form_id": "0x7101470e",
       "vanilla_name": "¬¬¬¬ Hauler's",
-      "modded_name": "     ¬¬¬¬ Hauler's [Infest]",
-      "sort_tier": "legendary",
+      "modded_name": "¬¬¬¬ Hauler's [Infest]",
+      "sort_tier": null,
       "tags": [
         "Infest"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Hauler's"
+      "base_name": "¬¬¬¬ Hauler's"
     },
     {
       "form_id": "0x7101470f",
       "vanilla_name": "¬¬¬¬ Tarnished",
-      "modded_name": "     ¬¬¬¬ Tarnished [Infest]",
-      "sort_tier": "legendary",
+      "modded_name": "¬¬¬¬ Tarnished [Infest]",
+      "sort_tier": null,
       "tags": [
         "Infest"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Tarnished"
+      "base_name": "¬¬¬¬ Tarnished"
     },
     {
       "form_id": "0x71014711",
       "vanilla_name": "¬¬¬¬ Raging",
-      "modded_name": "     ¬¬¬¬ Raging [Infest]",
-      "sort_tier": "legendary",
+      "modded_name": "¬¬¬¬ Raging [Infest]",
+      "sort_tier": null,
       "tags": [
         "Infest"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Raging"
+      "base_name": "¬¬¬¬ Raging"
     },
     {
       "form_id": "0x71014c1f",
       "vanilla_name": "¬¬¬¬ Vector",
-      "modded_name": "     ¬¬¬¬ Vector [Infest]",
-      "sort_tier": "legendary",
+      "modded_name": "¬¬¬¬ Vector [Infest]",
+      "sort_tier": null,
       "tags": [
         "Infest"
       ],
       "tag_position": "suffix",
       "display_name": null,
-      "base_name": "Vector"
+      "base_name": "¬¬¬¬ Vector"
     },
     {
       "form_id": "0x7101522c",
