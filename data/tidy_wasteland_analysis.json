@@ -55675,6 +55675,18 @@
       "base_name": "¬ Glass Ghost"
     },
     {
+      "form_id": "0x6102a6f3",
+      "vanilla_name": "Sludge Eye",
+      "modded_name": "[Legend] ¬ Sludge Eye",
+      "sort_tier": null,
+      "tags": [
+        "Legend"
+      ],
+      "tag_position": "before_plan",
+      "display_name": null,
+      "base_name": "¬ Sludge Eye"
+    },
+    {
       "form_id": "0x61029e0f",
       "vanilla_name": "¬¬ Elementalist",
       "modded_name": "¬¬ Elementalist [BURN]",
